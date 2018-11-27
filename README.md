@@ -2,7 +2,7 @@ Please read [UPGRADE-v2.0.md](https://github.com/graphql-python/graphene/blob/ma
 
 ---
 
-# ![Graphene Logo](http://graphene-python.org/favicon.png) Graphene-Django [![Build Status](https://travis-ci.org/graphql-python/graphene-django.svg?branch=master)](https://travis-ci.org/graphql-python/graphene-django) [![PyPI version](https://badge.fury.io/py/graphene-django.svg)](https://badge.fury.io/py/graphene-django) [![Coverage Status](https://coveralls.io/repos/graphql-python/graphene-django/badge.svg?branch=master&service=github)](https://coveralls.io/github/graphql-python/graphene-django?branch=master)
+# ![Graphene Logo](http://graphene-python.org/favicon.png) Graphene-Django-MrMilu [![CircleCI](https://circleci.com/gh/mrmilu/graphene-django/tree/master.svg?style=svg)](https://circleci.com/gh/mrmilu/graphene-django/tree/master) [![Coverage Status](https://coveralls.io/repos/mrmilu/graphene-django/badge.svg?branch=master&service=github)](https://coveralls.io/github/mrmilu/graphene-django?branch=master)
 
 
 A [Django](https://www.djangoproject.com/) integration for [Graphene](http://graphene-python.org/).
