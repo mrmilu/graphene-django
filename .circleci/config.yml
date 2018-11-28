@@ -2,23 +2,14 @@
 #
 # Check https://circleci.com/docs/2.0/language-python/ for more details
 #
-version: 2
-workflows:
-  version: 2
-  test:
-    jobs:
-#      - test-3.7
-#      - test-3.6
-      - test-3.5-django1.11
-#      - test-3.4
-#      - test-2.7
+version: 2.1
 
-#django-versions:
-#  - &django2.1 2.1
-#  - &django2.0 2.0
-#  - &django1.11 1.11
 jobs:
-  test-3.7-django2.1: &test-template
+  test-3_7-django2_1: &test-template
+    parameters:
+      django_version:
+        type: string
+        default: "2.1"
     docker:
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
@@ -53,50 +44,74 @@ jobs:
           command: |
             python3 -m venv venv
             . venv/bin/activate
-            pip install django==1.11
+            pip install django==<< parameters.django_version >>
 
       - save_cache:
           paths:
             - ./venv
           key: v1-dependencies-{{ checksum "setup.py" }}
+
       - run:
           name: Run tests
           command: |
             . venv/bin/activate
             py.test --cov=graphene_django graphene_django examples
+            coveralls
 
       - store_artifacts:
           path: test-reports
           destination: test-reports
-#  test-3.7-django2.0:
-#    <<: *test-template
-#    docker:
-#      - image: circleci/python:3.7-jessie
-#  test-3.6-django2.1:
-#    <<: *test-template
-#    docker:
-#      - image: circleci/python:3.6-jessie
-#  test-3.6-django2.0:
-#    <<: *test-template
-#    docker:
-#      - image: circleci/python:3.6-jessie
-#  test-3.5-django2.1:
-#    <<: *test-template
-#    docker:
-#      - image: circleci/python:3.5-jessie
-#  test-3.5-django2.0:
-#    <<: *test-template
-#    docker:
-#      - image: circleci/python:3.5-jessie
-  test-3.5-django1.11:
+
+  test-3_7-django2_0:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.7-jessie
+  test-3_6-django2_1:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.6-jessie
+  test-3_6-django2_0:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.6-jessie
+  test-3_5-django2_1:
     <<: *test-template
     docker:
       - image: circleci/python:3.5-jessie
-#  test-3.4-django2.0:
+  test-3_5-django2_0:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.5-jessie
+  test-3_5-django1_11:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.5-jessie
+#  test-3_4-django2_0:
 #    <<: *test-template
 #    docker:
 #      - image: circleci/python:3.4-jessie
-#  test-2.7:
+#  test-2_7:
 #    <<: *test-template
 #    docker:
 #      - image: circleci/python:2.7-jessie
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test-3_7-django2_1:
+          django_version: "2.1"
+      - test-3_7-django2_0:
+          django_version: "2.0"
+      - test-3_6-django2_1:
+          django_version: "2.1"
+      - test-3_6-django2_0:
+          django_version: "2.0"
+      - test-3_5-django2_1:
+          django_version: "2.1"
+      - test-3_5-django2_0:
+          django_version: "2.0"
+      - test-3_5-django1_11:
+          django_version: "1.11"
+#      - test-3.4
+#      - test-2.7
