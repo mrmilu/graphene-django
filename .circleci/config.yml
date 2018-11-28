@@ -90,6 +90,10 @@ jobs:
     <<: *test-template
     docker:
       - image: circleci/python:3.4-jessie
+  test-3_4-django1_11:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.4-jessie
   test-2_7-django1_11:
     <<: *test-template
     docker:
