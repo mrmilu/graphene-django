@@ -13,7 +13,7 @@ jobs:
     docker:
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
-      - image: circleci/python:3.7-jessie
+      - image: circleci/python:3.7-rc-node
 
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
@@ -65,7 +65,7 @@ jobs:
   test-3_7-django2_0:
     <<: *test-template
     docker:
-      - image: circleci/python:3.7-jessie
+      - image: circleci/python:3.7-rc-node
   test-3_6-django2_1:
     <<: *test-template
     docker:
@@ -86,14 +86,14 @@ jobs:
     <<: *test-template
     docker:
       - image: circleci/python:3.5-jessie
-#  test-3_4-django2_0:
-#    <<: *test-template
-#    docker:
-#      - image: circleci/python:3.4-jessie
-#  test-2_7:
-#    <<: *test-template
-#    docker:
-#      - image: circleci/python:2.7-jessie
+  test-3_4-django2_0:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.4-jessie
+  test-2_7-django1_11:
+    <<: *test-template
+    docker:
+      - image: circleci/python:2.7-jessie
 
 workflows:
   version: 2
@@ -113,5 +113,11 @@ workflows:
           django_version: "2.0"
       - test-3_5-django1_11:
           django_version: "1.11"
-#      - test-3.4
-#      - test-2.7
+      - test-3_4-django2_0:
+          django_version: "2.0"
+      - test-3_4-django2_0:
+          django_version: "2.0"
+      - test-3_4-django1_11:
+          django_version: "1.11"
+      - test-2_7-django1_11:
+          django_version: "1.11"
