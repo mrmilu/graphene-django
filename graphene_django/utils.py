@@ -1,10 +1,15 @@
+# -*- coding: utf-8 -*-
+# Python imports
 import inspect
 
+# Django imports
 from django.db import models
 from django.db.models.manager import Manager
 
 
-# from graphene.utils import LazyList
+# 3rd Party imports
+
+# App imports
 
 
 class LazyList(object):
