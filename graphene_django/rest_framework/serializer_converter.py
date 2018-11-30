@@ -65,7 +65,7 @@ def convert_serializer_to_input_type(serializer_class):
     }
 
     return type(
-        "{}Input".format(serializer.__class__.__name__),
+        "{}{}Input".format(serializer.__class__.__name__, serializer._creation_counter),
         (graphene.InputObjectType,),
         items,
     )
