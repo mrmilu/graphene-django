@@ -1,35 +1,32 @@
 # -*- coding: utf-8 -*-
-# Python imports
-from unittest import TestCase, mock, skip
-
-# Django imports
-
-# 3rd Party imports
+# General imports
+from mock import patch
+from pytest import raises
 
 # App imports
-from ..settings import perform_import, import_from_string, reload_graphene_settings, GrapheneSettings, graphene_settings
+import graphene_django.settings as settings
 
 
-class TestSettings(TestCase):
-    def test_perform_import_value_none_return_none(self):
-        self.assertIsNone(perform_import(None, None))
+def test_perform_import_value_none_return_none():
+    assert settings.perform_import(None, None) is None
 
-    def test_perform_import_value_integer_return_integer(self):
-        self.assertEqual(perform_import(1, None), 1)
 
-    def test_import_from_string_raise_error(self):
-        with self.assertRaises(ImportError) as context:
-            import_from_string('x.x', 'y')
+def test_perform_import_value_integer_return_integer():
+    assert settings.perform_import(1, None) == 1
 
-        exception = context.exception
 
-        self.assertRegex(exception.msg, "Could not import 'x.x' for Graphene setting 'y'")
+def test_import_from_string_raise_error():
+    with raises(ImportError) as excinfo:
+        settings.import_from_string('x.x', 'y')
 
-    @skip
-    @mock.patch('graphene_django.settings.graphene_settings', None)
-    def test_reload_graphene_settings(self):
-        reload_graphene_settings(
-            setting='GRAPHENE',
-            value='A'
-        )
-        self.assertIsInstance(graphene_settings, GrapheneSettings)
+    assert "Could not import 'x.x' for Graphene setting 'y'" in str(excinfo.value)
+
+
+@patch('graphene_django.settings.graphene_settings', None)
+def test_reload_graphene_settings():
+    print(settings.graphene_settings)
+    settings.reload_graphene_settings(
+        setting='GRAPHENE',
+        value=None
+    )
+    assert isinstance(settings.graphene_settings, settings.GrapheneSettings)
