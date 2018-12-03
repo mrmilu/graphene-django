@@ -24,7 +24,6 @@ def test_import_from_string_raise_error():
 
 @patch('graphene_django.settings.graphene_settings', None)
 def test_reload_graphene_settings():
-    print(settings.graphene_settings)
     settings.reload_graphene_settings(
         setting='GRAPHENE',
         value=None

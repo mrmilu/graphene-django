@@ -8,7 +8,7 @@ from graphene.types.utils import yank_fields_from_attrs
 
 from .converter import convert_django_field_with_choices
 from .registry import Registry, get_global_registry
-from .utils import DJANGO_FILTER_INSTALLED, get_model_fields, is_valid_django_model
+from .utils import DJANGO_FILTER_INSTALLED, get_model_fields, is_valid_django_model, check_field_permissions
 
 
 def construct_fields(model, registry, only_fields, exclude_fields):
@@ -43,19 +43,20 @@ class DjangoObjectTypeOptions(ObjectTypeOptions):
 class DjangoObjectType(ObjectType):
     @classmethod
     def __init_subclass_with_meta__(
-        cls,
-        model=None,
-        registry=None,
-        skip_registry=False,
-        only_fields=(),
-        exclude_fields=(),
-        filter_fields=None,
-        connection=None,
-        connection_class=None,
-        use_connection=None,
-        interfaces=(),
-        _meta=None,
-        **options
+            cls,
+            model=None,
+            registry=None,
+            skip_registry=False,
+            only_fields=(),
+            exclude_fields=(),
+            filter_fields=None,
+            permission_fields=(),
+            connection=None,
+            connection_class=None,
+            use_connection=None,
+            interfaces=(),
+            _meta=None,
+            **options
     ):
         assert is_valid_django_model(model), (
             'You need to pass a valid Django Model in {}.Meta, received "{}".'
@@ -103,6 +104,8 @@ class DjangoObjectType(ObjectType):
         _meta.filter_fields = filter_fields
         _meta.fields = django_fields
         _meta.connection = connection
+        if permission_fields:
+            _meta.permission_fields = permission_fields
 
         super(DjangoObjectType, cls).__init_subclass_with_meta__(
             _meta=_meta, interfaces=interfaces, **options
@@ -130,6 +133,8 @@ class DjangoObjectType(ObjectType):
     @classmethod
     def get_node(cls, info, id):
         try:
+            if 'permission_fields' in cls._meta.__dict__:
+                check_field_permissions(cls._meta, info.context)
             return cls._meta.model.objects.get(pk=id)
         except cls._meta.model.DoesNotExist:
             return None

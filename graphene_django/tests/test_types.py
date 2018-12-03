@@ -1,8 +1,10 @@
+# -*- coding: utf-8 -*-
+# General imports
 from mock import patch
-
 from graphene import Interface, ObjectType, Schema, Connection, String
 from graphene.relay import Node
 
+# App imports
 from .. import registry
 from ..types import DjangoObjectType, DjangoObjectTypeOptions
 from .models import Article as ArticleModel
