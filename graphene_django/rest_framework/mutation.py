@@ -7,6 +7,8 @@ from graphene.types import Field, InputField
 from graphene.types.mutation import MutationOptions
 from graphene.relay.mutation import ClientIDMutation
 from graphene.types.objecttype import yank_fields_from_attrs
+from graphql import GraphQLError
+from rest_framework.relations import PrimaryKeyRelatedField
 
 from .serializer_converter import convert_serializer_field
 from .types import ErrorType
@@ -24,8 +26,8 @@ def fields_for_serializer(serializer, only_fields, exclude_fields, is_input=Fals
     for name, field in serializer.fields.items():
         is_not_in_only = only_fields and name not in only_fields
         is_excluded = (
-            name
-            in exclude_fields  # or
+                name
+                in exclude_fields  # or
             # name in already_created_fields
         )
 
@@ -46,14 +48,15 @@ class SerializerMutation(ClientIDMutation):
 
     @classmethod
     def __init_subclass_with_meta__(
-        cls,
-        lookup_field=None,
-        serializer_class=None,
-        model_class=None,
-        model_operations=["create", "update"],
-        only_fields=(),
-        exclude_fields=(),
-        **options
+            cls,
+            lookup_field=None,
+            serializer_class=None,
+            model_class=None,
+            model_operations=["create", "update"],
+            permission_classes=[],
+            only_fields=(),
+            exclude_fields=(),
+            **options
     ):
 
         if not serializer_class:
@@ -84,6 +87,7 @@ class SerializerMutation(ClientIDMutation):
         _meta.serializer_class = serializer_class
         _meta.model_class = model_class
         _meta.fields = yank_fields_from_attrs(output_fields, _as=Field)
+        _meta.permission_classes = permission_classes
 
         input_fields = yank_fields_from_attrs(input_fields, _as=InputField)
         super(SerializerMutation, cls).__init_subclass_with_meta__(
@@ -122,6 +126,9 @@ class SerializerMutation(ClientIDMutation):
         kwargs = cls.get_serializer_kwargs(root, info, **input)
         serializer = cls._meta.serializer_class(**kwargs)
 
+        cls.check_permissions(kwargs)
+        cls.check_object_permissions(kwargs, obj=kwargs.get('instance'))
+
         if serializer.is_valid():
             return cls.perform_mutate(serializer, info)
         else:
@@ -141,3 +148,30 @@ class SerializerMutation(ClientIDMutation):
             kwargs[f] = field.get_attribute(obj)
 
         return cls(errors=None, **kwargs)
+
+    @classmethod
+    def get_permissions(cls):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        """
+        return [permission() for permission in cls._meta.permission_classes]
+
+    @classmethod
+    def check_permissions(cls, request):
+        """
+        Check if the request should be permitted.
+        Raises an appropriate exception if the request is not permitted.
+        """
+        for permission in cls.get_permissions():
+            if not permission.has_permission(request, cls):
+                raise GraphQLError(message=getattr(permission, 'message', None))
+
+    @classmethod
+    def check_object_permissions(cls, request, obj):
+        """
+        Check if the request should be permitted for a given object.
+        Raises an appropriate exception if the request is not permitted.
+        """
+        for permission in cls.get_permissions():
+            if not permission.has_object_permission(request, cls, obj):
+                raise GraphQLError(message=getattr(permission, 'message', None))
