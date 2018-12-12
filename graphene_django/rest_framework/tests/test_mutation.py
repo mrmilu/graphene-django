@@ -240,11 +240,54 @@ def test_permission_classes_denied_serializers():
 
 
 @mark.django_db
+def test_permission_classes_with_object_permissions_denied_serializers():
+    class TestPermission(permissions.BasePermission):
+        message = 'You are not allowed'
+
+        def has_object_permission(self, request, cls, obj):
+            return False
+
+    class MyMutation(SerializerMutation):
+        class Meta:
+            serializer_class = MyModelSerializer
+            permission_classes = [TestPermission]
+
+    instance = MyFakeModel.objects.create(cool_name="Narf")
+    with raises(Exception) as exc:
+        result = MyMutation.mutate_and_get_payload(
+            None, mock_info(), **{"id": instance.id, "cool_name": "New Narf"}
+        )
+    assert "You are not allowed" in str(exc.value)
+
+
+@mark.django_db
 def test_permission_classes_allowed_serializers():
     class TestPermission(permissions.BasePermission):
         message = 'You are not allowed'
 
         def has_permission(self, context, view):
+            return True
+
+    class MyMutation(SerializerMutation):
+        class Meta:
+            serializer_class = MyModelSerializer
+            permission_classes = [TestPermission]
+
+    instance = MyFakeModel.objects.create(cool_name="Narf")
+    result = MyMutation.mutate_and_get_payload(
+        None, mock_info(), **{"id": instance.id, "cool_name": "New Narf"}
+    )
+
+    assert result.errors is None
+    assert result.cool_name == "New Narf"
+
+
+@mark.django_db
+def test_permission_classes_with_object_permissions_allowed_serializers():
+    class TestPermission(permissions.BasePermission):
+        message = 'You are not allowed'
+
+        def has_object_permission(self, request, cls, obj):
             return True
 
     class MyMutation(SerializerMutation):
