@@ -41,6 +41,12 @@ class DjangoObjectTypeOptions(ObjectTypeOptions):
 
 
 class DjangoObjectType(ObjectType):
+
+    def __init__(self, *args, **kwargs):
+        print(args)
+        print(kwargs)
+        super().__init__(*args, **kwargs)
+
     @classmethod
     def __init_subclass_with_meta__(
             cls,
