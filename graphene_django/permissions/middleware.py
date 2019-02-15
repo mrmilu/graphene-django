@@ -1,58 +1,18 @@
-# from django.db import connections
-#
-# from promise import Promise
-#
-# from .sql.tracking import unwrap_cursor, wrap_cursor
-# from .types import DjangoDebug
+# -*- coding: utf-8 -*-
+# General imports
 
 
-# class DjangoDebugContext(object):
-#     def __init__(self):
-#         self.debug_promise = None
-#         self.promises = []
-#         self.enable_instrumentation()
-#         self.object = DjangoDebug(sql=[])
-#
-#     def get_debug_promise(self):
-#         if not self.debug_promise:
-#             self.debug_promise = Promise.all(self.promises)
-#         return self.debug_promise.then(self.on_resolve_all_promises)
-#
-#     def on_resolve_all_promises(self, values):
-#         self.disable_instrumentation()
-#         return self.object
-#
-#     def add_promise(self, promise):
-#         if self.debug_promise and not self.debug_promise.is_fulfilled:
-#             self.promises.append(promise)
-#
-#     def enable_instrumentation(self):
-#         # This is thread-safe because database connections are thread-local.
-#         for connection in connections.all():
-#             wrap_cursor(connection, self)
-#
-#     def disable_instrumentation(self):
-#         for connection in connections.all():
-#             unwrap_cursor(connection)
-
+# App imports
 
 class DjangoPermissionsMiddleware(object):
+
     def resolve(self, next, root, info, **args):
         context = info.context
-        # django_debug = getattr(context, "django_debug", None)
-        # if not django_debug:
-        #     if context is None:
-        #         raise Exception("DjangoDebug cannot be executed in None contexts")
-        #     try:
-        #         context.django_debug = DjangoDebugContext()
-        #     except Exception:
-        #         raise Exception(
-        #             "DjangoDebug need the context to be writable, context received: {}.".format(
-        #                 context.__class__.__name__
-        #             )
-        #         )
-        # if info.schema.get_type("DjangoDebug") == info.return_type:
-        #     return context.django_debug.get_debug_promise()
-        promise = next(root, info, **args)
-        # context.django_debug.add_promise(promise)
-        return promise
+        for name, field in info.schema._query._meta.fields.items():
+            for field_name, permissions in field._type._meta.permission_fields.items():
+                if info.field_name == field_name:
+                    for permission in permissions:
+                        if not permission.has_permission(context):
+                            return ''
+
+        return next(root, info, **args)
