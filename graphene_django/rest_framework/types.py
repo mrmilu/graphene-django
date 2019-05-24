@@ -10,3 +10,9 @@ class ErrorType(graphene.ObjectType):
 class DictType(UnmountedType):
     key = graphene.String()
     value = graphene.String()
+
+
+class ListErrorType(graphene.ObjectType):
+    field = graphene.List(graphene.NonNull(graphene.String), required=True)
+    message = graphene.String(required=True)
+    code = graphene.String(required=True)

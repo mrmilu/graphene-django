@@ -1,10 +1,15 @@
+# -*- coding: utf-8 -*-
+# Python imports
 import inspect
 
+# Django imports
 from django.db import models
 from django.db.models.manager import Manager
 
 
-# from graphene.utils import LazyList
+# 3rd Party imports
+
+# App imports
 
 
 class LazyList(object):
@@ -81,3 +86,10 @@ def import_single_dispatch():
         )
 
     return singledispatch
+
+
+def check_field_permissions(meta, context):
+    for field, classes in meta.permission_fields.items():
+        for permission_class in classes:
+            if not permission_class.has_permission(context):
+                del meta.fields[field]

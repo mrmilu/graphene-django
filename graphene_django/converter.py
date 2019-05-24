@@ -24,6 +24,7 @@ from graphql import assert_valid_name
 from .compat import ArrayField, HStoreField, JSONField, RangeField
 from .fields import DjangoListField, DjangoConnectionField
 from .utils import import_single_dispatch
+from .settings import graphene_settings
 
 singledispatch = import_single_dispatch()
 
@@ -58,7 +59,7 @@ def convert_django_field_with_choices(field, registry=None):
         if converted:
             return converted
     choices = getattr(field, "choices", None)
-    if choices:
+    if choices and graphene_settings.GRAPHENE_CONVERT_CHOICES_TO_ENUMS:
         meta = field.model._meta
         name = to_camel_case("{}_{}".format(meta.object_name, field.name))
         choices = list(get_choices(choices))
@@ -211,10 +212,10 @@ def convert_field_to_djangomodel(field, registry=None):
 
 @convert_django_field.register(ArrayField)
 def convert_postgres_array_to_list(field, registry=None):
-    base_type = convert_django_field(field.base_field)
-    if not isinstance(base_type, (List, NonNull)):
-        base_type = type(base_type)
-    return List(base_type, description=field.help_text, required=not field.null)
+    inner_type = convert_django_field(field.base_field)
+    if not isinstance(inner_type, (List, NonNull)):
+        inner_type = NonNull(type(inner_type)) if inner_type.kwargs['required'] else type(inner_type)
+    return List(inner_type, description=field.help_text, required=not field.null)
 
 
 @convert_django_field.register(HStoreField)
@@ -227,5 +228,5 @@ def convert_posgres_field_to_string(field, registry=None):
 def convert_posgres_range_to_string(field, registry=None):
     inner_type = convert_django_field(field.base_field)
     if not isinstance(inner_type, (List, NonNull)):
-        inner_type = type(inner_type)
+        inner_type = NonNull(type(inner_type)) if inner_type.kwargs['required'] else type(inner_type)
     return List(inner_type, description=field.help_text, required=not field.null)

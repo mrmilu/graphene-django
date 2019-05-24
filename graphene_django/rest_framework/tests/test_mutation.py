@@ -4,10 +4,10 @@ from graphene import Field, ResolveInfo
 from graphene.types.inputobjecttype import InputObjectType
 from py.test import raises
 from py.test import mark
-from rest_framework import serializers
+from rest_framework import serializers, permissions
 
 from ...types import DjangoObjectType
-from ..models import MyFakeModel
+from ..models import MyFakeModel, MyFakeModelWithPassword
 from ..mutation import SerializerMutation
 
 
@@ -47,7 +47,6 @@ class MySerializer(serializers.Serializer):
 
 def test_needs_serializer_class():
     with raises(Exception) as exc:
-
         class MyMutation(SerializerMutation):
             pass
 
@@ -84,6 +83,47 @@ def test_exclude_fields():
     assert "errors" in MyMutation._meta.fields
     assert "cool_name" in MyMutation.Input._meta.fields
     assert "created" not in MyMutation.Input._meta.fields
+
+
+@mark.django_db
+def test_write_only_field():
+    class WriteOnlyFieldModelSerializer(serializers.ModelSerializer):
+        password = serializers.CharField(write_only=True)
+
+        class Meta:
+            model = MyFakeModelWithPassword
+            fields = ["cool_name", "password"]
+
+    class MyMutation(SerializerMutation):
+        class Meta:
+            serializer_class = WriteOnlyFieldModelSerializer
+
+    result = MyMutation.mutate_and_get_payload(
+        None, mock_info(), **{"cool_name": "New Narf", "password": "admin"}
+    )
+
+    assert hasattr(result, "cool_name")
+    assert not hasattr(result, "password"), "'password' is write_only field and shouldn't be visible"
+
+
+@mark.django_db
+def test_write_only_field_using_extra_kwargs():
+    class WriteOnlyFieldModelSerializer(serializers.ModelSerializer):
+        class Meta:
+            model = MyFakeModelWithPassword
+            fields = ["cool_name", "password"]
+            extra_kwargs = {"password": {"write_only": True}}
+
+    class MyMutation(SerializerMutation):
+        class Meta:
+            serializer_class = WriteOnlyFieldModelSerializer
+
+    result = MyMutation.mutate_and_get_payload(
+        None, mock_info(), **{"cool_name": "New Narf", "password": "admin"}
+    )
+
+    assert hasattr(result, "cool_name")
+    assert not hasattr(result, "password"), "'password' is write_only field and shouldn't be visible"
 
 
 def test_nested_model():
@@ -170,10 +210,95 @@ def test_model_mutate_and_get_payload_error():
 
 def test_invalid_serializer_operations():
     with raises(Exception) as exc:
-
         class MyModelMutation(SerializerMutation):
             class Meta:
                 serializer_class = MyModelSerializer
                 model_operations = ["Add"]
 
     assert "model_operations" in str(exc.value)
+
+
+@mark.django_db
+def test_permission_classes_denied_serializers():
+    class TestPermission(permissions.BasePermission):
+        message = 'You are not allowed'
+
+        def has_permission(self, context, view):
+            return False
+
+    class MyMutation(SerializerMutation):
+        class Meta:
+            serializer_class = MyModelSerializer
+            permission_classes = [TestPermission]
+
+    instance = MyFakeModel.objects.create(cool_name="Narf")
+    with raises(Exception) as exc:
+        result = MyMutation.mutate_and_get_payload(
+            None, mock_info(), **{"id": instance.id, "cool_name": "New Narf"}
+        )
+    assert "You are not allowed" in str(exc.value)
+
+
+@mark.django_db
+def test_permission_classes_with_object_permissions_denied_serializers():
+    class TestPermission(permissions.BasePermission):
+        message = 'You are not allowed'
+
+        def has_object_permission(self, request, cls, obj):
+            return False
+
+    class MyMutation(SerializerMutation):
+        class Meta:
+            serializer_class = MyModelSerializer
+            permission_classes = [TestPermission]
+
+    instance = MyFakeModel.objects.create(cool_name="Narf")
+    with raises(Exception) as exc:
+        result = MyMutation.mutate_and_get_payload(
+            None, mock_info(), **{"id": instance.id, "cool_name": "New Narf"}
+        )
+    assert "You are not allowed" in str(exc.value)
+
+
+@mark.django_db
+def test_permission_classes_allowed_serializers():
+    class TestPermission(permissions.BasePermission):
+        message = 'You are not allowed'
+
+        def has_permission(self, context, view):
+            return True
+
+    class MyMutation(SerializerMutation):
+        class Meta:
+            serializer_class = MyModelSerializer
+            permission_classes = [TestPermission]
+
+    instance = MyFakeModel.objects.create(cool_name="Narf")
+    result = MyMutation.mutate_and_get_payload(
+        None, mock_info(), **{"id": instance.id, "cool_name": "New Narf"}
+    )
+
+    assert result.errors is None
+    assert result.cool_name == "New Narf"
+
+
+@mark.django_db
+def test_permission_classes_with_object_permissions_allowed_serializers():
+    class TestPermission(permissions.BasePermission):
+        message = 'You are not allowed'
+
+        def has_object_permission(self, request, cls, obj):
+            return True
+
+    class MyMutation(SerializerMutation):
+        class Meta:
+            serializer_class = MyModelSerializer
+            permission_classes = [TestPermission]
+
+    instance = MyFakeModel.objects.create(cool_name="Narf")
+    result = MyMutation.mutate_and_get_payload(
+        None, mock_info(), **{"id": instance.id, "cool_name": "New Narf"}
+    )
+
+    assert result.errors is None
+    assert result.cool_name == "New Narf"
